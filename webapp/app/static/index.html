@@ -1,0 +1,772 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#08111f">
+    <meta
+      name="description"
+      content="MMD Sentinel 多模态 Android 恶意软件静态分析平台"
+    >
+    <title>MMD Sentinel · 多模态 APK 安全分析</title>
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/static/styles.css?v=20261024-500mb">
+  </head>
+  <body>
+    <div class="ambient ambient-one" aria-hidden="true"></div>
+    <div class="ambient ambient-two" aria-hidden="true"></div>
+    <div class="mobile-scrim" id="mobileScrim" hidden></div>
+
+    <div class="app-shell">
+      <aside class="sidebar" id="sidebar">
+        <a class="brand" href="#" data-nav="analysis" aria-label="返回分析中心">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none">
+              <path d="M16 3.5 27 8v7.7c0 6.2-4.5 11-11 12.8C9.5 26.7 5 21.9 5 15.7V8l11-4.5Z" stroke="currentColor" stroke-width="1.8"/>
+              <path d="m11.2 15.8 3.1 3.1 6.7-7" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <span>
+            <strong>MMD Sentinel</strong>
+            <small>APK Security Lab</small>
+          </span>
+        </a>
+
+        <nav class="primary-nav" aria-label="主导航">
+          <p class="nav-label">工作台</p>
+          <button class="nav-item is-active" type="button" data-nav="analysis" aria-current="page">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3v3M3 12h3m12 0h3M12 18v3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              <circle cx="12" cy="12" r="4" stroke="currentColor" stroke-width="1.7"/>
+            </svg>
+            <span>分析中心</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="history">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v11a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17.5v-11Z" stroke="currentColor" stroke-width="1.7"/>
+              <path d="M8 9h8M8 13h8M8 17h5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+            <span>历史记录</span>
+            <span class="nav-count" id="navHistoryCount" hidden>0</span>
+          </button>
+          <button class="nav-item" type="button" data-nav="model">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M12 3 3.8 7.5 12 12l8.2-4.5L12 3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/>
+              <path d="m3.8 12 8.2 4.5 8.2-4.5M3.8 16.5 12 21l8.2-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span>模型说明</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-bottom">
+          <div class="system-card">
+            <div class="system-card-top">
+              <span class="status-dot" id="systemDot"></span>
+              <strong id="systemLabel">正在检测系统</strong>
+            </div>
+            <p id="systemDetail">正在连接分析引擎</p>
+            <div class="system-meta">
+              <span>仅本地解析</span>
+              <span>静态分析</span>
+            </div>
+          </div>
+          <p class="sidebar-note">
+            上传文件不会被执行，分析结束后自动删除。
+          </p>
+        </div>
+      </aside>
+
+      <div class="main-column">
+        <header class="topbar">
+          <div class="topbar-left">
+            <button class="icon-button menu-button" id="menuButton" type="button" aria-label="打开导航">
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+              </svg>
+            </button>
+            <div>
+              <p class="eyebrow">ANDROID SECURITY WORKSPACE</p>
+              <h1 id="pageTitle">分析中心</h1>
+            </div>
+          </div>
+          <div class="topbar-actions">
+            <div class="privacy-chip">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M4 8.5V6a6 6 0 0 1 12 0v2.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                <rect x="3.5" y="8.5" width="13" height="8" rx="2" stroke="currentColor" stroke-width="1.5"/>
+              </svg>
+              本地安全解析
+            </div>
+            <button class="secondary-button compact" type="button" id="newAnalysisButton">
+              <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+              </svg>
+              新建分析
+            </button>
+          </div>
+        </header>
+
+        <main class="content">
+          <section class="view is-active" id="view-analysis" data-view-panel="analysis">
+            <div class="hero" id="analysisHero">
+              <div class="hero-copy">
+                <span class="hero-kicker">
+                  <span class="pulse-dot"></span>
+                  多模态静态检测引擎
+                </span>
+                <h2>在安装之前，<br><em>看清每一个 APK。</em></h2>
+                <p>
+                  同时观察权限行为、敏感 API 与 Dalvik Opcode，
+                  用可解释的分析结果辅助安全研判。
+                </p>
+                <div class="hero-points" aria-label="能力说明">
+                  <span>三类模态融合</span>
+                  <span>260 维特征</span>
+                  <span>全程不执行文件</span>
+                </div>
+              </div>
+              <div class="hero-visual" aria-hidden="true">
+                <div class="orb-grid"></div>
+                <div class="shield-orbit orbit-one"></div>
+                <div class="shield-orbit orbit-two"></div>
+                <div class="shield-core">
+                  <svg viewBox="0 0 64 64" fill="none">
+                    <path d="M32 7 55 16v15.5C55 44 46 53.5 32 57 18 53.5 9 44 9 31.5V16L32 7Z" stroke="currentColor" stroke-width="2.2"/>
+                    <path d="m22 32 7 7 14-15" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </div>
+                <span class="float-tag tag-permission">PERMISSION</span>
+                <span class="float-tag tag-api">SENSITIVE API</span>
+                <span class="float-tag tag-opcode">OPCODE</span>
+              </div>
+            </div>
+
+            <div class="analysis-grid" id="analysisUploadCard">
+              <section class="panel upload-panel">
+                <div class="panel-heading">
+                  <div>
+                    <span class="section-index">01</span>
+                    <h3>上传待分析文件</h3>
+                    <p>支持标准 Android APK，单文件最大 500 MB</p>
+                  </div>
+                  <span class="optional-badge">APK</span>
+                </div>
+
+                <div
+                  class="drop-zone"
+                  id="dropZone"
+                  role="button"
+                  tabindex="0"
+                  aria-label="选择或拖入 APK 文件"
+                >
+                  <input type="file" id="fileInput" accept=".apk,application/vnd.android.package-archive" hidden>
+                  <div class="drop-icon">
+                    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                      <path d="M16 21V7m0 0-5 5m5-5 5 5M7 21v3a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-3" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
+                  <strong>拖拽 APK 到这里</strong>
+                  <span>或点击浏览本地文件</span>
+                  <small>文件只用于本次静态解析，不会运行</small>
+                </div>
+
+                <div class="selected-file" id="selectedFile" hidden>
+                  <div class="file-icon">APK</div>
+                  <div class="file-copy">
+                    <strong id="selectedFileName"></strong>
+                    <span id="selectedFileMeta"></span>
+                  </div>
+                  <button class="icon-button small" id="removeFileButton" type="button" aria-label="移除文件">
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="m6 6 8 8m0-8-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+                    </svg>
+                  </button>
+                </div>
+
+                <div class="upload-actions">
+                  <label class="check-row">
+                    <input type="checkbox" id="consentCheck">
+                    <span>我确认该文件仅用于授权的安全研究分析</span>
+                  </label>
+                  <button class="primary-button" id="analyzeButton" type="button" disabled>
+                    <span>开始检测</span>
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M4 10h12m-4-4 4 4-4 4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </button>
+                </div>
+              </section>
+
+              <aside class="panel process-panel">
+                <div class="panel-heading compact-heading">
+                  <div>
+                    <span class="section-index">02</span>
+                    <h3>分析流程</h3>
+                  </div>
+                </div>
+                <ol class="process-list">
+                  <li>
+                    <span class="process-number">1</span>
+                    <div>
+                      <strong>结构校验</strong>
+                      <p>识别 APK 格式与清单文件</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="process-number">2</span>
+                    <div>
+                      <strong>特征提取</strong>
+                      <p>权限、组件、API 与 Opcode</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="process-number">3</span>
+                    <div>
+                      <strong>多模态检测</strong>
+                      <p>注意力交互与动态权重融合</p>
+                    </div>
+                  </li>
+                  <li>
+                    <span class="process-number">4</span>
+                    <div>
+                      <strong>生成报告</strong>
+                      <p>风险结论与证据摘要</p>
+                    </div>
+                  </li>
+                </ol>
+              </aside>
+            </div>
+
+            <section class="panel recent-scans-panel" id="recentScansPanel">
+              <div class="recent-scans-heading">
+                <div>
+                  <span class="section-index">RECENT SCANS</span>
+                  <h3>最近扫描</h3>
+                  <p>继续查看已经完成的 APK 分析，或进入历史记录检索全部样本。</p>
+                </div>
+                <button class="secondary-button compact" type="button" data-nav="history">
+                  查看全部
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <path d="M4 10h12m-4-4 4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                </button>
+              </div>
+              <div class="recent-scans-table-wrap">
+                <table class="recent-scans-table">
+                  <thead>
+                    <tr>
+                      <th>应用 / 文件</th>
+                      <th>结论</th>
+                      <th>风险指数</th>
+                      <th>扫描时间</th>
+                      <th><span class="sr-only">操作</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="recentScansBody"></tbody>
+                </table>
+                <div class="recent-scans-empty" id="recentScansEmpty" hidden>
+                  <strong>暂时没有扫描记录</strong>
+                  <span>上传第一个 APK 后，结果会显示在这里。</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="panel progress-panel" id="progressPanel" hidden aria-live="polite">
+              <div class="progress-visual">
+                <div class="scan-radar">
+                  <span></span>
+                  <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                    <path d="M16 4 26 8v7c0 5.5-4 9.8-10 11.5C10 24.8 6 20.5 6 15V8l10-4Z" stroke="currentColor" stroke-width="1.7"/>
+                  </svg>
+                </div>
+              </div>
+              <div class="progress-copy">
+                <div class="progress-heading">
+                  <div>
+                    <span class="live-label"><i></i> 正在分析</span>
+                    <h3 id="progressFile">APK 静态检测</h3>
+                  </div>
+                  <strong id="progressPercent">0%</strong>
+                </div>
+                <p id="progressMessage">正在准备分析环境</p>
+                <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                  <span id="progressBar"></span>
+                </div>
+                <div class="progress-steps" aria-label="分析阶段">
+                  <span data-progress-stage="0">文件校验</span>
+                  <span data-progress-stage="20">清单解析</span>
+                  <span data-progress-stage="50">DEX 扫描</span>
+                  <span data-progress-stage="84">模型推理</span>
+                  <span data-progress-stage="100">报告生成</span>
+                </div>
+              </div>
+            </section>
+
+            <section class="error-panel panel" id="analysisError" hidden role="alert">
+              <div class="error-icon">!</div>
+              <div>
+                <h3>本次分析未能完成</h3>
+                <p id="analysisErrorMessage"></p>
+                <button class="secondary-button compact" type="button" id="retryButton">重新选择文件</button>
+              </div>
+            </section>
+
+            <section class="result-section" id="resultSection" hidden>
+              <div class="result-topline">
+                <div>
+                  <span class="eyebrow">ANALYSIS REPORT</span>
+                  <h2>检测报告</h2>
+                </div>
+                <div class="result-actions">
+                  <button class="secondary-button compact" type="button" id="reportOverviewButton">
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <circle cx="8.5" cy="8.5" r="4.5" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="m12 12 4 4M8.5 6v5M6 8.5h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                    </svg>
+                    放大阅读
+                  </button>
+                  <button class="secondary-button compact" type="button" id="printReportButton">
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M6 7V3.8h8V7M6 14H4.5A1.5 1.5 0 0 1 3 12.5v-4A1.5 1.5 0 0 1 4.5 7h11A1.5 1.5 0 0 1 17 8.5v4a1.5 1.5 0 0 1-1.5 1.5H14M6 11h8v5H6v-5Z" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    打印报告
+                  </button>
+                  <button class="secondary-button compact" type="button" id="copySummaryButton">
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <rect x="7" y="6" width="8" height="9" rx="1.5" stroke="currentColor" stroke-width="1.4"/>
+                      <path d="M13 6V5a1.5 1.5 0 0 0-1.5-1.5H6A1.5 1.5 0 0 0 4.5 5v7A1.5 1.5 0 0 0 6 13.5h1" stroke="currentColor" stroke-width="1.4"/>
+                    </svg>
+                    复制摘要
+                  </button>
+                  <button class="primary-button compact" type="button" id="exportButton">
+                    <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                      <path d="M10 3v9m0 0-3.5-3.5M10 12l3.5-3.5M4 14.5v1A1.5 1.5 0 0 0 5.5 17h9a1.5 1.5 0 0 0 1.5-1.5v-1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    导出 JSON
+                  </button>
+                </div>
+              </div>
+
+              <nav class="report-jump-nav" aria-label="报告快速导航">
+                <span>快速阅读</span>
+                <button type="button" data-report-jump="summary">通俗总结</button>
+                <button type="button" data-report-jump="risk">风险画像</button>
+                <button type="button" data-report-jump="impact">可能影响</button>
+                <button type="button" data-report-jump="actions">处理建议</button>
+                <button type="button" data-report-jump="model">模型解释</button>
+              </nav>
+
+              <section class="analysis-pipeline" id="analysisPipeline">
+                <div class="pipeline-stage is-complete">
+                  <span class="pipeline-index">01</span>
+                  <div>
+                    <strong>文件与特征</strong>
+                    <small>APK、Manifest、API、Opcode</small>
+                  </div>
+                  <b>已完成</b>
+                </div>
+                <span class="pipeline-connector" aria-hidden="true"></span>
+                <div class="pipeline-stage is-complete">
+                  <span class="pipeline-index">02</span>
+                  <div>
+                    <strong>静态多模态判定</strong>
+                    <small>当前报告的核心结论来源</small>
+                  </div>
+                  <b>已完成</b>
+                </div>
+                <span class="pipeline-connector" aria-hidden="true"></span>
+                <button
+                  class="pipeline-stage is-pending detail-clickable"
+                  id="dynamicPipelineStage"
+                  type="button"
+                  data-detail-type="sandbox"
+                >
+                  <span class="pipeline-index">03</span>
+                  <div>
+                    <strong>动态沙箱复核</strong>
+                    <small>联网、加载、运行行为</small>
+                  </div>
+                  <b>待接入</b>
+                </button>
+                <span class="pipeline-connector" aria-hidden="true"></span>
+                <button
+                  class="pipeline-stage is-pending detail-clickable"
+                  id="familyPipelineStage"
+                  type="button"
+                  data-detail-type="family"
+                >
+                  <span class="pipeline-index">04</span>
+                  <div>
+                    <strong>恶意家族识别</strong>
+                    <small>依赖动态行为特征</small>
+                  </div>
+                  <b>不可用</b>
+                </button>
+              </section>
+              <p class="analysis-scope-note" id="analysisScopeNote"></p>
+
+              <div class="verdict-grid" id="verdictGrid">
+                <article class="verdict-card" id="verdictCard">
+                  <div class="verdict-heading">
+                    <span class="verdict-badge" id="verdictBadge">分析结论</span>
+                    <span class="report-id" id="reportId"></span>
+                  </div>
+                  <div class="verdict-main">
+                    <div class="score-ring" id="scoreRing">
+                      <div>
+                        <strong id="riskScore">--</strong>
+                        <span>风险指数</span>
+                      </div>
+                    </div>
+                    <div class="verdict-copy">
+                      <h3 id="verdictTitle"></h3>
+                      <p id="verdictSubtitle"></p>
+                      <div class="confidence-line">
+                        <span>模型置信度</span>
+                        <strong id="confidenceValue"></strong>
+                      </div>
+                      <div class="probability-split">
+                        <span class="benign-part" id="benignPart"></span>
+                        <span class="malware-part" id="malwarePart"></span>
+                      </div>
+                      <div class="probability-labels">
+                        <span>良性 <b id="benignProbability"></b></span>
+                        <span>恶意 <b id="malwareProbability"></b></span>
+                      </div>
+                    </div>
+                  </div>
+                </article>
+
+                <article class="panel evidence-summary">
+                  <div class="panel-heading compact-heading">
+                    <div>
+                      <span class="section-index">KEY FINDINGS</span>
+                      <h3>关键发现</h3>
+                    </div>
+                  </div>
+                  <ul class="finding-list" id="findingList"></ul>
+                  <p class="disclaimer">
+                    该结果为模型辅助判断，不能单独作为恶意软件的最终定性依据。
+                  </p>
+                </article>
+              </div>
+
+              <section class="panel public-summary" id="publicSummary">
+                <div class="public-summary-heading">
+                  <div>
+                    <span class="section-index">PLAIN-LANGUAGE SUMMARY</span>
+                    <h3>一页读懂这次检测</h3>
+                    <p>用不带技术术语的方式说明结论、依据和下一步建议。</p>
+                  </div>
+                  <span class="public-summary-label">通俗解读</span>
+                </div>
+                <p class="public-summary-lead" id="publicSummaryLead"></p>
+                <div class="public-summary-grid">
+                  <article>
+                    <span>系统看到了什么</span>
+                    <strong id="publicSummaryFinding"></strong>
+                  </article>
+                  <article>
+                    <span>这意味着什么</span>
+                    <strong id="publicSummaryMeaning"></strong>
+                  </article>
+                  <article>
+                    <span>建议怎么做</span>
+                    <strong id="publicSummaryAction"></strong>
+                  </article>
+                </div>
+                <p class="public-summary-note">
+                  这只是基于 APK 静态特征的风险评估，不能证明应用百分之百安全或恶意。
+                </p>
+              </section>
+
+              <section class="risk-intelligence" id="riskIntelligence">
+                <article class="panel risk-map-panel" id="riskMapSection">
+                  <div class="panel-heading compact-heading">
+                    <div>
+                      <span class="section-index">RISK MAP</span>
+                      <h3>风险主要集中在哪里</h3>
+                      <p>这些维度说明应用具备哪些敏感能力；点击任意条目可放大阅读。</p>
+                    </div>
+                  </div>
+                  <div class="risk-dimension-list" id="riskDimensionList"></div>
+                </article>
+                <article class="panel risk-scenario-panel" id="riskImpactSection">
+                  <div class="panel-heading compact-heading">
+                    <div>
+                      <span class="section-index">POSSIBLE IMPACT</span>
+                      <h3>这个应用可能发生什么</h3>
+                      <p>根据当前证据推演可能被滥用的场景，点击可查看完整解释。</p>
+                    </div>
+                  </div>
+                  <div class="risk-scenario-list" id="riskScenarioList"></div>
+                </article>
+                <article class="panel risk-action-panel" id="riskActionSection">
+                  <div class="panel-heading compact-heading">
+                    <div>
+                      <span class="section-index">NEXT STEPS</span>
+                      <h3>建议接下来怎么做</h3>
+                      <p>按照风险优先级排列；点击建议可查看具体处理方式。</p>
+                    </div>
+                  </div>
+                  <ol class="risk-action-list" id="riskActionList"></ol>
+                </article>
+              </section>
+              <p class="risk-scope-note" id="riskScopeNote"></p>
+
+              <div class="metric-grid" id="metricGrid"></div>
+
+              <section class="panel report-panel" id="reportPanel">
+                <div class="tabs" role="tablist" aria-label="报告详情">
+                  <button class="tab-button is-active" type="button" role="tab" aria-selected="true" data-result-tab="overview">综合分析</button>
+                  <button class="tab-button" type="button" role="tab" aria-selected="false" data-result-tab="security">安全问题</button>
+                  <button class="tab-button" type="button" role="tab" aria-selected="false" data-result-tab="permissions">Manifest</button>
+                  <button class="tab-button" type="button" role="tab" aria-selected="false" data-result-tab="components">代码与 API</button>
+                  <button class="tab-button" type="button" role="tab" aria-selected="false" data-result-tab="model">模型如何判断</button>
+                </div>
+                <div class="tab-panel is-active" data-result-panel="overview" data-print-title="综合分析" role="tabpanel"></div>
+                <div class="tab-panel" data-result-panel="security" data-print-title="安全问题" role="tabpanel"></div>
+                <div class="tab-panel" data-result-panel="permissions" data-print-title="Manifest 分析" role="tabpanel"></div>
+                <div class="tab-panel" data-result-panel="components" data-print-title="代码与 API" role="tabpanel"></div>
+                <div class="tab-panel" data-result-panel="model" data-print-title="模型如何判断" role="tabpanel"></div>
+              </section>
+            </section>
+          </section>
+
+          <section class="view" id="view-history" data-view-panel="history" hidden>
+            <div class="page-intro">
+              <div>
+                <span class="eyebrow">ANALYSIS ARCHIVE</span>
+                <h2>历史记录</h2>
+                <p>回顾每一次静态分析，快速定位需要复核的样本。</p>
+              </div>
+              <button class="primary-button" type="button" data-nav="analysis">
+                新建检测
+                <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                  <path d="M10 4v12M4 10h12" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+                </svg>
+              </button>
+            </div>
+
+            <div class="history-stats">
+              <article class="stat-card">
+                <span>累计分析</span>
+                <strong id="historyTotal">0</strong>
+                <small>所有本地记录</small>
+              </article>
+              <article class="stat-card">
+                <span>恶意判定</span>
+                <strong class="danger-text" id="historyMalware">0</strong>
+                <small>模型判定为恶意</small>
+              </article>
+              <article class="stat-card">
+                <span>良性判定</span>
+                <strong class="safe-text" id="historyBenign">0</strong>
+                <small>模型判定为良性</small>
+              </article>
+            </div>
+
+            <section class="panel history-panel">
+              <div class="history-toolbar">
+                <label class="search-box">
+                  <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+                    <circle cx="8.7" cy="8.7" r="4.7" stroke="currentColor" stroke-width="1.5"/>
+                    <path d="m12.3 12.3 3.7 3.7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                  </svg>
+                  <input type="search" id="historySearch" placeholder="搜索文件名、包名或 SHA-256">
+                </label>
+                <label class="select-box">
+                  <span>结论</span>
+                  <select id="historyFilter">
+                    <option value="all">全部</option>
+                    <option value="malware">恶意</option>
+                    <option value="benign">良性</option>
+                  </select>
+                </label>
+              </div>
+              <div class="history-table-wrap">
+                <table class="history-table">
+                  <thead>
+                    <tr>
+                      <th>样本</th>
+                      <th>检测结论</th>
+                      <th>风险指数</th>
+                      <th>分析时间</th>
+                      <th><span class="sr-only">操作</span></th>
+                    </tr>
+                  </thead>
+                  <tbody id="historyBody"></tbody>
+                </table>
+                <div class="empty-state" id="historyEmpty" hidden>
+                  <div class="empty-icon">
+                    <svg viewBox="0 0 32 32" fill="none" aria-hidden="true">
+                      <path d="M7 9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2V9Z" stroke="currentColor" stroke-width="1.5"/>
+                      <path d="M11 12h10M11 17h10M11 22h6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                  </div>
+                  <h3 id="historyEmptyTitle">还没有检测记录</h3>
+                  <p id="historyEmptyText">完成第一个 APK 分析后，报告会出现在这里。</p>
+                  <button class="secondary-button compact" type="button" data-nav="analysis">开始分析</button>
+                </div>
+              </div>
+            </section>
+          </section>
+
+          <section class="view" id="view-model" data-view-panel="model" hidden>
+            <div class="page-intro model-intro">
+              <div>
+                <span class="eyebrow">MODEL TRANSPARENCY</span>
+                <h2>模型说明</h2>
+                <p>理解系统如何从 APK 静态证据形成风险结论。</p>
+              </div>
+              <span class="model-version">MMDynamic · v1.0</span>
+            </div>
+
+            <section class="model-hero panel">
+              <div>
+                <span class="hero-kicker"><span class="pulse-dot"></span> 多模态动态融合</span>
+                <h3>三种视角，形成一次判断。</h3>
+                <p>
+                  模型不是依赖单一字符串或规则，而是联合学习应用声明、敏感调用和字节码结构，
+                  再通过跨模态注意力与动态权重形成统一表示。
+                </p>
+              </div>
+              <div class="model-architecture" aria-label="模型流程">
+                <div class="arch-node">
+                  <span>行为</span>
+                  <strong id="modelBehavioralFeatures">34</strong>
+                </div>
+                <div class="arch-node">
+                  <span>API</span>
+                  <strong id="modelApiFeatures">121</strong>
+                </div>
+                <div class="arch-node">
+                  <span>Opcode</span>
+                  <strong id="modelOpcodeFeatures">105</strong>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-fusion">
+                  <small>ATTENTION FUSION</small>
+                  <strong>MMDynamic</strong>
+                </div>
+                <div class="arch-arrow">→</div>
+                <div class="arch-result">
+                  <span>风险判断</span>
+                  <strong>0 / 1</strong>
+                </div>
+              </div>
+            </section>
+
+            <div class="model-grid">
+              <article class="panel modality-card">
+                <span class="modality-tag behavior-tag">01 / BEHAVIOR</span>
+                <h3>行为与声明</h3>
+                <p>从 Manifest 中提取权限、Activity、Service、Receiver、Provider 和 Intent。</p>
+                <div class="feature-count"><strong>34</strong><span>维模型输入</span></div>
+              </article>
+              <article class="panel modality-card">
+                <span class="modality-tag api-tag">02 / API</span>
+                <h3>敏感方法调用</h3>
+                <p>定位 DEX 中的敏感 Android/Java 方法调用，并映射到训练阶段的方法聚类。</p>
+                <div class="feature-count"><strong>121</strong><span>维模型输入</span></div>
+              </article>
+              <article class="panel modality-card">
+                <span class="modality-tag opcode-tag">03 / OPCODE</span>
+                <h3>字节码结构</h3>
+                <p>统计 Dalvik 操作码分布，捕捉代码层面的结构模式与执行行为线索。</p>
+                <div class="feature-count"><strong>105</strong><span>维模型输入</span></div>
+              </article>
+            </div>
+
+            <div class="model-detail-grid">
+              <section class="panel">
+                <div class="panel-heading compact-heading">
+                  <div>
+                    <span class="section-index">PIPELINE</span>
+                    <h3>一次分析的完整路径</h3>
+                  </div>
+                </div>
+                <ol class="pipeline-list">
+                  <li><span>01</span><div><strong>APK 安全校验</strong><p>验证扩展名、文件头与大小，文件仅写入隔离临时目录。</p></div></li>
+                  <li><span>02</span><div><strong>静态特征提取</strong><p>Androguard 解析 Manifest 与 DEX，不安装、不执行样本。</p></div></li>
+                  <li><span>03</span><div><strong>训练特征对齐</strong><p>按训练阶段的 260 个字段顺序生成向量并应用标准化参数。</p></div></li>
+                  <li><span>04</span><div><strong>模型推理与报告</strong><p>输出良性/恶意概率，同时汇总用户可读的安全证据。</p></div></li>
+                </ol>
+              </section>
+              <section class="panel limitations-card">
+                <div class="panel-heading compact-heading">
+                  <div>
+                    <span class="section-index">SAFE USE</span>
+                    <h3>使用边界</h3>
+                  </div>
+                </div>
+                <ul>
+                  <li>模型结论用于辅助研判，不替代人工审核。</li>
+                  <li>混淆、加固与动态加载代码可能降低静态分析完整度。</li>
+                  <li>概率高不代表已确认恶意，仍需结合来源和动态行为。</li>
+                  <li>样本只在本地解析，不会通过网络上传或执行。</li>
+                </ul>
+              </section>
+            </div>
+
+            <section class="model-footnote">
+              <span>训练样本</span>
+              <strong id="modelTrainingSamples">--</strong>
+              <span>输入特征</span>
+              <strong id="modelFeatureCount">260</strong>
+              <span>检测模态</span>
+              <strong>3</strong>
+            </section>
+          </section>
+        </main>
+
+        <footer class="page-footer">
+          <span>MMD Sentinel · 多模态 Android 恶意软件静态分析</span>
+          <span>实验室研究用途</span>
+        </footer>
+      </div>
+    </div>
+
+    <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+
+    <div class="modal-backdrop" id="confirmModal" hidden>
+      <div class="confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+        <div class="confirm-icon">
+          <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 8v5m0 3h.01M10.3 4.6 3.4 17a2 2 0 0 0 1.7 3h13.8a2 2 0 0 0 1.7-3L13.7 4.6a2 2 0 0 0-3.4 0Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <h3 id="confirmTitle">确认删除</h3>
+        <p id="confirmMessage">删除后无法恢复。</p>
+        <div class="confirm-actions">
+          <button class="secondary-button compact" type="button" id="confirmCancel">取消</button>
+          <button class="danger-button compact" type="button" id="confirmAccept">删除</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-backdrop" id="detailModal" hidden>
+      <article class="detail-dialog" role="dialog" aria-modal="true" aria-labelledby="detailTitle">
+        <header class="detail-header">
+          <div>
+            <span class="detail-kicker" id="detailKicker">DETAIL VIEW</span>
+            <h2 id="detailTitle">详情</h2>
+          </div>
+          <button class="detail-close" type="button" id="detailClose" aria-label="关闭详情">
+            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="m6 6 12 12m0-12L6 18" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/>
+            </svg>
+          </button>
+        </header>
+        <div class="detail-content" id="detailContent"></div>
+        <footer class="detail-footer">
+          <button class="secondary-button compact" type="button" id="detailCopyButton">复制详情</button>
+          <button class="primary-button compact" type="button" id="detailDoneButton">我知道了</button>
+        </footer>
+      </article>
+    </div>
+
+    <script src="/static/app.js?v=20261024-500mb" defer></script>
+  </body>
+</html>
+

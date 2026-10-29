@@ -1,0 +1,9 @@
+.venv/
+__pycache__/
+*.py[cod]
+data/history.db
+data/uploads/
+data/.matplotlib/
+data/*.apk
+logs/
+
